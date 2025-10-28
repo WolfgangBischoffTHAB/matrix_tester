@@ -65,6 +65,23 @@ public class Matrix {
         return subMatrix;
     }
 
+    public void setSubMatrix(int xPos, int yPos, int width, int height, Matrix accumulatorSubMatrixC) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                int tempData = accumulatorSubMatrixC.data[i*width + j];
+                data[(yPos+i)*rows + (xPos+j)] = tempData;
+            }
+        }
+    }
+
+    public void add(Matrix rhs) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                data[i*rows + j] += rhs.data[i*rows + j];
+            }
+        }
+    }
+
     public Matrix mult(final Matrix matB) {
         if (columns != matB.rows) {
             throw new RuntimeException("Does not match!");

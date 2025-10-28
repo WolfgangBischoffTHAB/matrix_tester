@@ -13,12 +13,223 @@ public class App {
         System.out.println("Hello World!");
 
         // mainSourceCodeTests();
-        // mainMatrixMultTests();
+        // mainMatrixMulTests();
+        // mainMatrixMul4x4();
+        // mainMatrixMul9x9();
+        // mainMatrixAdd3x3();
+        // mainMatrixSetSubMatrix();
 
-        mainMatrixMultSegmented();
+        mainMatrixMulSegmented();
     }
 
-    private static void mainMatrixMultSegmented() {
+    private static void mainMatrixSetSubMatrix() {
+        
+        // ARRANGE
+
+        int rows = 3;
+        int columns = rows;
+
+        Matrix matrixA = new Matrix(9, 9);
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.upCountingMatrix();
+        matrixB.prettyPrintFormat("%6s");
+
+        System.out.println("----------------------");
+
+        // ACT
+
+        matrixA.setSubMatrix(3, 3, 3, 3, matrixB);
+        matrixA.prettyPrintFormat("%6s");
+
+        // ASSERT
+
+        int[] intArray = new int[] {  
+            0,     0,     0,     0,     0,     0,     0,     0,     0,
+            0,     0,     0,     0,     0,     0,     0,     0,     0,
+            0,     0,     0,     0,     0,     0,     0,     0,     0,
+            0,     0,     0,     1,     2,     3,     0,     0,     0,
+            0,     0,     0,     4,     5,     6,     0,     0,     0,
+            0,     0,     0,     7,     8,     9,     0,     0,     0,
+            0,     0,     0,     0,     0,     0,     0,     0,     0,
+            0,     0,     0,     0,     0,     0,     0,     0,     0,
+            0,     0,     0,     0,     0,     0,     0,     0,     0
+        };
+
+        Matrix matrixExpected = new Matrix(intArray, 9, 9);
+
+        if (!matrixA.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    private static void mainMatrixAdd3x3() {
+
+        // ARRANGE
+
+        int rows = 3;
+        int columns = rows;
+
+        Matrix matrixA = new Matrix(rows, columns);
+        matrixA.upCountingMatrix();
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.upCountingMatrix();
+
+        // ACT
+
+        matrixA.add(matrixB);
+        matrixA.prettyPrintFormat("%6s");
+
+        // ASSERT
+
+        int[] intArray = new int[] {  
+            2, 4, 6,
+            8, 10, 12,
+            14, 16, 18
+        };
+
+        Matrix matrixExpected = new Matrix(intArray, 3, 3);
+
+        if (!matrixA.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    private static void mainMatrixMulSegmented() {
+        
+        // ARRANGE
+
+        int rows = 4;
+        int columns = rows;
+
+        System.out.println("A");
+        Matrix matrixA = new Matrix(rows, columns);
+        matrixA.upCountingMatrix();
+        matrixA.prettyPrintFormat("%6s");
+
+        System.out.println("B");
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.upCountingMatrix();
+        matrixB.prettyPrintFormat("%6s");
+
+        Matrix matrixC = new Matrix(rows, columns);
+
+        int nc = 2; // subset size
+        int rowSteps = rows / nc;
+
+        int kc = 2; // subset size
+        int columnsSteps = columns / kc;
+
+        int mc = 2; // subset size
+        int innerSteps = 2;
+
+        //
+        // ACT
+        //
+
+        // DEBUG
+        int iterationCounter = 0;
+
+        // for jc = 0 to n-1 step nc // Loop 1
+
+        // Loop 1
+        for (int jc = 0; jc < rowSteps; jc++) {
+
+            // for pc = 0 to k-1 step kc // Loop 2
+            // Loop 2
+            for (int pc = 0; pc < columnsSteps; pc++) {
+
+                Matrix subMatrixB = matrixB.getSubMatrix(pc*kc, jc*nc, kc, nc);
+
+                // for ic = 0 to m-1 step mc // Loop 3
+                for (int ic = 0; ic < innerSteps; ic++) {
+
+                    Matrix subMatrixA = matrixA.getSubMatrix(ic*mc, pc*kc, mc, kc);
+
+                    System.out.println("[");
+                    subMatrixA.prettyPrintFormat("%6s");
+                    System.out.println("------------------------");
+                    subMatrixB.prettyPrintFormat("%6s");
+                    System.out.println("]");
+
+                    iterationCounter++;
+
+                    //Matrix accumulatorSubMatrixC = matrixC.getSubMatrix(jc*nc, ic*kc, nc, kc);
+                    Matrix accumulatorSubMatrixC = matrixC.getSubMatrix(ic*kc, jc*nc, nc, kc);
+
+                    Matrix temp = subMatrixA.mult(subMatrixB);
+
+                    accumulatorSubMatrixC.add(temp);
+
+                    matrixC.setSubMatrix(jc*nc, ic*kc, nc, kc, accumulatorSubMatrixC);
+
+                }
+
+            }
+        }
+
+        System.out.println(iterationCounter);
+        matrixC.prettyPrintFormat("%4s");
+        
+        // ASSERT
+
+        int[] intArray = new int[] {  
+            90, 100, 110, 120,
+            202, 228, 254, 280,
+            314, 356, 398, 440,
+            426, 484, 542, 600
+        };
+        
+        Matrix matrixExpected = new Matrix(intArray, 4, 4);
+
+        if (!matrixC.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    private static void mainMatrixMul4x4() {
+
+        // ARRANGE
+
+        int rows = 4;
+        int columns = rows;
+
+        Matrix matrixA = new Matrix(rows, columns);
+        matrixA.upCountingMatrix();
+        matrixA.prettyPrintFormat("%4s");
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.upCountingMatrix();
+        matrixB.prettyPrintFormat("%4s");
+
+        // ACT
+
+        Matrix matrixC = matrixA.mult(matrixB);
+        matrixC.prettyPrintFormat("%4s");
+
+        // ASSERT
+
+        int[] intArray = new int[] {  
+            90, 100, 110, 120,
+            202, 228, 254, 280,
+            314, 356, 398, 440,
+            426, 484, 542, 600
+        };
+
+        Matrix matrixExpected = new Matrix(intArray, 4, 4);
+
+        if (!matrixC.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    private static void mainMatrixMul9x9() {
 
         // ARRANGE
 
@@ -27,7 +238,6 @@ public class App {
 
         Matrix matrixA = new Matrix(rows, columns);
         matrixA.upCountingMatrix();
-        // matrixA.prettyPrint();
         Matrix matrixB = new Matrix(rows, columns);
         matrixB.upCountingMatrix();
 
@@ -59,7 +269,7 @@ public class App {
         System.out.println("Test OK");
     }
 
-    private static void mainMatrixMultTests() {
+    private static void mainMatrixMulTests() {
 
         // ARRANGE
 
