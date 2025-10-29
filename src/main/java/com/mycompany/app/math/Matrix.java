@@ -1,6 +1,7 @@
 package com.mycompany.app.math;
 
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Matrix {
 
@@ -51,6 +52,14 @@ public class Matrix {
         }
     }
 
+    public void randomMatrix(int min, int max) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                data[i * columns + j] = ThreadLocalRandom.current().nextInt(min, max + 1);
+            }
+        }
+    }  
+
     public Matrix getSubMatrix(int xPos, int yPos, int width, int height) {
         Matrix subMatrix = new Matrix(width, height);
         int innerI = 0;
@@ -97,6 +106,62 @@ public class Matrix {
             }
         }
         return matC;
+    }
+
+    /**
+     * The idea is that the outer product lends itself to be implemented in hardware.
+     * The result is created in steps and the steps are combined using the accumulator 
+     * memory. Accumulation literally means that the intermediate result are accumulated
+     * (add operation)
+     * 
+     * @param matrixB
+     */
+    public Matrix multOuterProduct(Matrix matrixB) {
+        if ((rows != matrixB.rows) && (columns != matrixB.columns) && (columns != rows)) {
+            throw new RuntimeException("Need square, same dimensions for both matrixes!");
+        }
+
+        // gradually build up the result by buffering intermediate results in the accumulator
+        // int accumulator[] = new int[rows*rows];
+
+        Matrix matrixC = new Matrix(rows, columns);
+
+        // over all columns in matrix A
+        for (int pivot = 0; pivot < columns; pivot++) {
+
+            // over all rows in matrix A
+            for (int rowA = 0; rowA < rows; rowA++) {
+
+                // use the same row in matrix A and B
+
+                // over all columns in matrix B
+                for (int colB = 0; colB < columns; colB++) {
+
+                    int a = data[rowA*rows + pivot];
+                    int b = matrixB.data[pivot*rows + colB];
+
+                    // DEBUG
+                    // accumulator[rowA*rows + colB] += a * b;
+
+                    matrixC.data[rowA*rows + colB] += a * b;
+
+                }
+
+            }
+
+            // // DEBUG
+            // for (int i = 0; i < rows*columns; i++) {
+            //     System.out.println(accumulator[i]);
+            // }
+
+        }
+
+        // // 30, 36, 42, 66, 81, 96, 102, 126, 150
+        // for (int i = 0; i < rows*columns; i++) {
+        //     System.out.println(accumulator[i]);
+        // }
+
+        return matrixC;
     }
 
     public void prettyPrint() {
@@ -161,6 +226,6 @@ public class Matrix {
         if (columns != other.columns)
             return false;
         return true;
-    }
+    }  
 
 }

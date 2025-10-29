@@ -19,7 +19,86 @@ public class App {
         // mainMatrixAdd3x3();
         // mainMatrixSetSubMatrix();
 
-        mainMatrixMulSegmented();
+        // mainMatrixMulSegmented();
+        // mainMatrixMulSegmented2();
+
+        // mainMatrixMulOuterProduct();
+        mainMatrixMulOuterProductRandom();
+    }
+
+    private static void mainMatrixMulOuterProduct() {
+        
+        // ARRANGE
+
+        int rows = 3;
+        int columns = rows;
+
+        Matrix matrixA = new Matrix(rows, columns);
+        matrixA.upCountingMatrix();
+        matrixA.prettyPrintFormat("%6s");
+
+        System.out.println("----------------------");
+
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.upCountingMatrix();
+        matrixB.prettyPrintFormat("%6s");
+
+        System.out.println("----------------------");
+
+         // ACT
+
+        Matrix matrixC = matrixA.multOuterProduct(matrixB);
+        matrixC.prettyPrintFormat("%6s");
+
+        // ASSERT
+
+        int[] intArray = new int[] { 30, 36, 42, 66, 81, 96, 102, 126, 150 };
+        Matrix matrixExpected = new Matrix(intArray, 3, 3);
+
+        if (!matrixC.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    private static void mainMatrixMulOuterProductRandom() {
+        
+        // ARRANGE
+
+        int rows = 3;
+        int columns = rows;
+
+        Matrix matrixA = new Matrix(rows, columns);
+        matrixA.randomMatrix(0, 100);
+        matrixA.prettyPrintFormat("%6s");
+
+        System.out.println("----------------------");
+
+        Matrix matrixB = new Matrix(rows, columns);
+        matrixB.randomMatrix(0, 100);
+        matrixB.prettyPrintFormat("%6s");
+
+        System.out.println("----------------------");
+
+        // ACT
+
+        // compute with outer product
+        Matrix matrixCOuterProduct = matrixA.multOuterProduct(matrixB);
+        matrixCOuterProduct.prettyPrintFormat("%6s");
+
+        // compute normally
+        Matrix matrixC = matrixA.mult(matrixB);
+        matrixC.prettyPrintFormat("%6s");
+
+        // ASSERT
+
+        // compute normal result with outer product result
+        if (!matrixC.equals(matrixCOuterProduct)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
     }
 
     private static void mainMatrixSetSubMatrix() {
@@ -92,6 +171,125 @@ public class App {
         Matrix matrixExpected = new Matrix(intArray, 3, 3);
 
         if (!matrixA.equals(matrixExpected)) {
+            throw new RuntimeException("No match!");
+        }
+
+        System.out.println("Test OK");
+    }
+
+    // https://onlinetools.com/math/generate-random-matrix
+    // https://matrix.reshish.com/de/matrix-multiplication/    
+
+    private static void mainMatrixMulSegmented2() {
+        
+        // ARRANGE
+
+        int rows = 4;
+        int columns = rows;
+
+        System.out.println("A");
+        /*
+        9 0 9 4
+        2 6 6 7
+        9 3 8 1
+        6 9 7 1
+        */
+        int[] intArrayA = new int[] {  
+            9, 0, 9, 4,
+            2, 6, 6, 7,
+            9, 3, 8, 1,
+            6, 9, 7, 1
+        };
+        Matrix matrixA = new Matrix(intArrayA, rows, columns);
+        matrixA.prettyPrintFormat("%6s");
+
+        System.out.println("B");
+        /*
+        1 2 4 2
+        8 6 0 0
+        7 6 8 5
+        8 4 7 5
+        */
+        int[] intArrayB = new int[] {  
+            1, 2, 4, 2,
+            8, 6, 0, 0,
+            7, 6, 8, 5,
+            8, 4, 7, 5
+        };
+        Matrix matrixB = new Matrix(intArrayB, rows, columns);
+        matrixB.prettyPrintFormat("%6s");
+
+        Matrix matrixC = new Matrix(rows, columns);
+
+        int nc = 2; // subset size
+        int rowSteps = rows / nc;
+
+        int kc = 2; // subset size
+        int columnsSteps = columns / kc;
+
+        int mc = 2; // subset size
+        int innerSteps = rows / nc;
+
+        //
+        // ACT
+        //
+
+        // DEBUG
+        int iterationCounter = 0;
+
+        // for jc = 0 to n-1 step nc // Loop 1
+
+        // Loop 1
+        for (int jc = 0; jc < rowSteps; jc++) {
+
+            // for pc = 0 to k-1 step kc // Loop 2
+            // Loop 2
+            for (int pc = 0; pc < columnsSteps; pc++) {
+
+                Matrix subMatrixB = matrixB.getSubMatrix(pc*kc, jc*nc, kc, nc);
+
+                // for ic = 0 to m-1 step mc // Loop 3
+                for (int ic = 0; ic < innerSteps; ic++) {
+
+                    Matrix subMatrixA = matrixA.getSubMatrix(ic*mc, pc*kc, mc, kc);
+
+                    System.out.println("[");
+                    subMatrixA.prettyPrintFormat("%6s");
+                    System.out.println("------------------------");
+                    subMatrixB.prettyPrintFormat("%6s");
+                    System.out.println("]");
+
+                    iterationCounter++;
+
+                    //Matrix accumulatorSubMatrixC = matrixC.getSubMatrix(jc*nc, ic*kc, nc, kc);
+                    Matrix accumulatorSubMatrixC = matrixC.getSubMatrix(ic*kc, jc*nc, nc, kc);
+
+                    Matrix temp = subMatrixA.mult(subMatrixB);
+
+                    accumulatorSubMatrixC.add(temp);
+
+                    matrixC.setSubMatrix(jc*nc, ic*kc, nc, kc, accumulatorSubMatrixC);
+
+                }
+
+            }
+        }
+
+        System.out.println(iterationCounter);
+        matrixC.prettyPrintFormat("%4s");
+        
+        // ASSERT
+
+        int[] intArray = new int[] {  
+            104,  88, 136,  83,
+            148, 104, 105,  69,
+            97,  88, 107,  63,
+            135, 112,  87,  52
+        };
+        
+        Matrix matrixExpected = new Matrix(intArray, 4, 4);
+
+        if (!matrixC.equals(matrixExpected)) {
             throw new RuntimeException("No match!");
         }
 
@@ -288,7 +486,7 @@ public class App {
 
         // ASSERT
 
-        int[] intArray = new int[] { 30,  36,  42, 66,  81,  96, 102, 126, 150 };
+        int[] intArray = new int[] { 30, 36, 42, 66, 81, 96, 102, 126, 150 };
         Matrix matrixExpected = new Matrix(intArray, 3, 3);
 
         if (!matrixC.equals(matrixExpected)) {
