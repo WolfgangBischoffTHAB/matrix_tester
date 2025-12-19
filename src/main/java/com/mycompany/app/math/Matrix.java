@@ -13,13 +13,15 @@ public class Matrix {
 
     /**
      * ctor
-     * 
+     *
      * @param rows
      * @param columns
      */
     public Matrix(int rows, int columns) {
+
         this.rows = rows;
         this.columns = columns;
+
         int elemCount = rows * columns;
         data = new int[elemCount];
         for (int i = 0; i < elemCount; i++) {
@@ -27,6 +29,13 @@ public class Matrix {
         }
     }
 
+    /**
+     * ctor
+     *
+     * @param intArray
+     * @param rows
+     * @param columns
+     */
     public Matrix(int[] intArray, int rows, int columns) {
         this.rows = rows;
         this.columns = columns;
@@ -58,15 +67,15 @@ public class Matrix {
                 data[i * columns + j] = ThreadLocalRandom.current().nextInt(min, max + 1);
             }
         }
-    }  
+    }
 
     public Matrix getSubMatrix(int xPos, int yPos, int width, int height) {
         Matrix subMatrix = new Matrix(width, height);
         int innerI = 0;
-        for (int i = xPos; i < xPos+width; i++) {
+        for (int i = xPos; i < xPos + width; i++) {
             int innerJ = 0;
-            for (int j = yPos; j < yPos+height; j++) {
-                subMatrix.data[innerI*width+innerJ] = this.data[i*this.rows + j];
+            for (int j = yPos; j < yPos + height; j++) {
+                subMatrix.data[innerI * width + innerJ] = data[i * rows + j];
                 innerJ++;
             }
             innerI++;
@@ -77,8 +86,8 @@ public class Matrix {
     public void setSubMatrix(int xPos, int yPos, int width, int height, Matrix accumulatorSubMatrixC) {
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
-                int tempData = accumulatorSubMatrixC.data[i*width + j];
-                data[(yPos+i)*rows + (xPos+j)] = tempData;
+                int tempData = accumulatorSubMatrixC.data[i * width + j];
+                data[(yPos + i) * rows + (xPos + j)] = tempData;
             }
         }
     }
@@ -86,42 +95,46 @@ public class Matrix {
     public void add(Matrix rhs) {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < columns; j++) {
-                data[i*rows + j] += rhs.data[i*rows + j];
+                data[i * rows + j] += rhs.data[i * rows + j];
             }
         }
     }
 
+    /** This is the basic algorithm for matrix multiplication */
     public Matrix mult(final Matrix matB) {
         if (columns != matB.rows) {
             throw new RuntimeException("Does not match!");
         }
         Matrix matC = new Matrix(rows, matB.columns);
+        // over row of matrix B
         for (int i = 0; i < rows; i++) {
+            // over column of matrix A
             for (int j = 0; j < matB.columns; j++) {
-
+                // fuse row and column together into a single cell of matrix C
                 for (int k = 0; k < columns; k++) {
-                    matC.data[i*rows + j] += data[i*columns + k] * matB.data[k*columns + j];
+                    matC.data[i * rows + j] += data[i * columns + k] * matB.data[k * columns + j];
                 }
-
             }
         }
         return matC;
     }
 
     /**
-     * The idea is that the outer product lends itself to be implemented in hardware.
-     * The result is created in steps and the steps are combined using the accumulator 
-     * memory. Accumulation literally means that the intermediate result are accumulated
-     * (add operation)
-     * 
+     * The idea is that the outer product lends itself to be implemented in
+     * hardware. The result is created in steps and the steps are combined using the
+     * accumulator memory. Accumulation literally means that the intermediate result
+     * are accumulated (add operation)
+     *
      * @param matrixB
      */
     public Matrix multOuterProduct(Matrix matrixB) {
+
         if ((rows != matrixB.rows) && (columns != matrixB.columns) && (columns != rows)) {
             throw new RuntimeException("Need square, same dimensions for both matrixes!");
         }
 
-        // gradually build up the result by buffering intermediate results in the accumulator
+        // gradually build up the result by buffering intermediate results in the
+        // accumulator
         // int accumulator[] = new int[rows*rows];
 
         Matrix matrixC = new Matrix(rows, columns);
@@ -137,13 +150,13 @@ public class Matrix {
                 // over all columns in matrix B
                 for (int colB = 0; colB < columns; colB++) {
 
-                    int a = data[rowA*rows + pivot];
-                    int b = matrixB.data[pivot*rows + colB];
+                    int a = data[rowA * rows + pivot];
+                    int b = matrixB.data[pivot * rows + colB];
 
                     // DEBUG
                     // accumulator[rowA*rows + colB] += a * b;
 
-                    matrixC.data[rowA*rows + colB] += a * b;
+                    matrixC.data[rowA * rows + colB] += a * b;
 
                 }
 
@@ -151,17 +164,99 @@ public class Matrix {
 
             // // DEBUG
             // for (int i = 0; i < rows*columns; i++) {
-            //     System.out.println(accumulator[i]);
+            // System.out.println(accumulator[i]);
             // }
 
         }
 
         // // 30, 36, 42, 66, 81, 96, 102, 126, 150
         // for (int i = 0; i < rows*columns; i++) {
-        //     System.out.println(accumulator[i]);
+        // System.out.println(accumulator[i]);
         // }
 
         return matrixC;
+    }
+
+    /**
+     * Segmented matrix mult wraps a kernel for multiplying smaller matrices into a
+     * loop structure so that a large matrix is computed in iterations. As a kernel
+     * you can use different ways to multiply matrixes. For example standard matrix
+     * multiplication or the outer product approach.
+     *
+     * @param rows
+     * @param columns
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     */
+    public static void segmentedMatrixMult(int rows, int columns,
+            Matrix matrixA, Matrix matrixB, Matrix matrixC) {
+
+        int nc = 2; // subset size
+        int rowSteps = rows / nc;
+
+        int kc = 2; // subset size
+        int columnsSteps = columns / kc;
+
+        int mc = 2; // subset size
+        int innerSteps = rows / nc;
+
+        //
+        // ACT
+        //
+
+        // DEBUG
+        int iterationCounter = 0;
+
+        // for jc = 0 to n-1 step nc
+        // Loop 1
+        for (int jc = 0; jc < rowSteps; jc++) {
+
+            // for pc = 0 to k-1 step kc
+            // Loop 2
+            for (int pc = 0; pc < columnsSteps; pc++) {
+
+                Matrix subMatrixB = matrixB.getSubMatrix(pc * kc, jc * nc, kc, nc);
+
+                // for ic = 0 to m-1 step mc
+                // Loop 3
+                for (int ic = 0; ic < innerSteps; ic++) {
+
+                    Matrix subMatrixA = matrixA.getSubMatrix(ic * mc, pc * kc, mc, kc);
+
+                    System.out.println("[");
+                    subMatrixA.prettyPrintFormat("%6s");
+                    System.out.println("------------------------");
+                    subMatrixB.prettyPrintFormat("%6s");
+                    System.out.println("]");
+
+                    iterationCounter++;
+
+                    Matrix accumulatorSubMatrixC = matrixC.getSubMatrix(ic * kc, jc * nc, nc, kc);
+
+                    //
+                    // kernel of sub matrix multiplication
+                    //
+
+                    // perform a matrix mult of the sub matrices using standard matrix
+                    // multiplication
+                    // Matrix multResult = subMatrixA.mult(subMatrixB);
+
+                    // perform matrix multiplication based on output product multiplication
+                    Matrix multResult = subMatrixA.multOuterProduct(subMatrixB);
+
+                    // accumulate the result
+                    accumulatorSubMatrixC.add(multResult);
+
+                    // place the accumulator back into the large result matrix
+                    matrixC.setSubMatrix(jc * nc, ic * kc, nc, kc, accumulatorSubMatrixC);
+
+                }
+
+            }
+        }
+
+        System.out.println(iterationCounter);
     }
 
     public void prettyPrint() {
@@ -180,7 +275,7 @@ public class Matrix {
      * <br/>
      * <br/>
      * Usage:
-     * 
+     *
      * <pre>
      * int rows = MATRIX_DIMENSIONS;
      * int columns = rows;
@@ -188,7 +283,7 @@ public class Matrix {
      * matrix.resetToUpCountingMatrix();
      * matrix.prettyPrintFormat("%4s");
      * </pre>
-     * 
+     *
      * @param format
      */
     public void prettyPrintFormat(final String format) {
@@ -226,6 +321,6 @@ public class Matrix {
         if (columns != other.columns)
             return false;
         return true;
-    }  
+    }
 
 }
